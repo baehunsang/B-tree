@@ -43,6 +43,7 @@ public:
 
     void insert(T K, U P);
     U find_key(T v);
+    void print_all_record();
 
 };
 
@@ -191,6 +192,21 @@ U BPlusTree<T, U>::find_key(T v){
         return C->records[seek - C->keys.begin()]; 
     }
     else return nullptr;
+}
+
+template <typename T, typename U>
+void BPlusTree<T, U>::print_all_record(){
+    Node* C = root;
+    while (!C->isLeaf){
+        C = C->pointers.front();
+    }
+    while(C){
+        for(int i=0; i< C->keys.size(); i++){
+            cout << "record: " << C->keys[i] << endl; 
+        }
+        C = C->next;
+    }
+    
 }
 
 #endif

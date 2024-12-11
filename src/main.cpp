@@ -27,6 +27,7 @@ int main(){
     for(int i=0; i< 12; i++){
         assert(tree.find_key(records[i]) == &records[i]);
     }
+    tree.print_all_record();
     printf("[-] TC pass\n");
 
     return 0;
