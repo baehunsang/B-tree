@@ -1,3 +1,4 @@
 .vscode/*
 CMakeList.txt
 build/*
+src/main
