@@ -36,6 +36,8 @@ private:
 
     void insert_in_leaf(Node* L, T K, U P);
     void insert_in_parent(Node* N, T K_tmp, Node* N_tmp);
+    void delete_entry(Node* N, T K);
+    Node* find_leaf(T K);
 
 public:
     BPlusTree(int degree): root(nullptr), n(degree){}
@@ -43,6 +45,7 @@ public:
     void insert(T K, U P);
     U find_key(T v);
     void print_all_record();
+    void delete_key(T K);
 
 };
 
@@ -173,19 +176,7 @@ void BPlusTree<T, U>::insert_in_parent(Node* N, T K_tmp, Node* N_tmp){
 
 template <typename T, typename U>
 U BPlusTree<T, U>::find_key(T v){
-    Node* C = root;
-    while(!C->isLeaf){
-        int idx =C->keys.size() - 1;
-        while(idx >= 0 && v <= C->keys[idx]){
-            idx--;
-        }
-        idx++;
-        if(idx == C->keys.size()){
-            C = C->pointers.back(); 
-        }
-        else if(v == C->keys[idx]) C = C->pointers[idx + 1];
-        else C = C->pointers[idx];
-    }
+    Node* C = find_leaf(v);
     auto seek = find(C->keys.begin(), C->keys.end(), v);
     if(seek != C->keys.end()){
         return C->records[seek - C->keys.begin()]; 
@@ -207,5 +198,29 @@ void BPlusTree<T, U>::print_all_record(){
     }
     
 }
+
+template <typename T, typename U>
+typename BPlusTree<T, U>::Node* BPlusTree<T, U>::find_leaf(T K){
+    Node* C = root;
+    while(!C->isLeaf){
+        int idx =C->keys.size() - 1;
+        while(idx >= 0 && K <= C->keys[idx]){
+            idx--;
+        }
+        idx++;
+        if(idx == C->keys.size()){
+            C = C->pointers.back(); 
+        }
+        else if(K == C->keys[idx]) C = C->pointers[idx + 1];
+        else C = C->pointers[idx];
+    }
+    return C;
+}
+
+template <typename T, typename U>
+void BPlusTree<T, U>::delete_key(T K){
+
+}
+
 
 #endif
