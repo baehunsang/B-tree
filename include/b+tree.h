@@ -36,7 +36,7 @@ private:
 
     void insert_in_leaf(Node* L, T K, U P);
     void insert_in_parent(Node* N, T K_tmp, Node* N_tmp);
-    void delete_entry(Node* N, T K);
+    void delete_entry(Node* N, T K, Node* P);
     Node* find_leaf(T K);
 
 public:
@@ -177,6 +177,8 @@ void BPlusTree<T, U>::insert_in_parent(Node* N, T K_tmp, Node* N_tmp){
 template <typename T, typename U>
 U BPlusTree<T, U>::find_key(T v){
     Node* C = find_leaf(v);
+    if(!C) return nullptr;
+    
     auto seek = find(C->keys.begin(), C->keys.end(), v);
     if(seek != C->keys.end()){
         return C->records[seek - C->keys.begin()]; 
@@ -202,7 +204,7 @@ void BPlusTree<T, U>::print_all_record(){
 template <typename T, typename U>
 typename BPlusTree<T, U>::Node* BPlusTree<T, U>::find_leaf(T K){
     Node* C = root;
-    while(!C->isLeaf){
+    while(C && !C->isLeaf){
         int idx =C->keys.size() - 1;
         while(idx >= 0 && K <= C->keys[idx]){
             idx--;
@@ -219,7 +221,136 @@ typename BPlusTree<T, U>::Node* BPlusTree<T, U>::find_leaf(T K){
 
 template <typename T, typename U>
 void BPlusTree<T, U>::delete_key(T K){
+    if(find_key(K)){
+        Node* L = find_leaf(K);
+        delete_entry(L, K, nullptr);
+    }
+}
 
+template <typename T, typename U>
+void BPlusTree<T, U>::delete_entry(Node* N, T K, Node* P){
+    auto pos = find(N->keys.begin(), N->keys.end(), K);
+    auto pos2 = find(N->pointers.begin(), N->pointers.end(), P);
+    int idx = pos - N->keys.begin();
+    N->keys.erase(pos);
+    if(N->isLeaf){
+        N->records.erase(N->records.begin() + idx);
+    }
+    else{
+        N->pointers.erase(pos2);
+    }
+    
+    if(N->isLeaf && N == root && N->records.size() == 0){
+        root = nullptr;
+        delete N;
+        return;
+    }
+
+    else if(!N->parent && N->pointers.size() == 1){
+        root = N->pointers.front();
+        root->parent = nullptr;
+        delete N;
+        return;
+    }
+    else if(N->parent){
+        // SPLIT_POS(n - 1) -> underbound : "number of (P,K)"
+        if(N->keys.size() < SPLIT_POS(n - 1)){
+            Node* Pr = N->parent;
+            Node* N_tmp = nullptr;
+            T K_tmp;
+            auto pos = find(Pr->pointers.begin(), Pr->pointers.end(), N);
+            int idx = pos - Pr->pointers.begin();
+
+            // default : left sibling
+            // but if N is front of P->pointers then right sibling
+            if(!idx){
+                N_tmp = Pr->pointers[idx + 1];
+                K_tmp = Pr->keys[idx];
+            }
+            else{
+                N_tmp = Pr->pointers[idx - 1];
+                K_tmp = Pr->keys[idx - 1];
+            }
+
+            // merge
+            if(N->keys.size() + N_tmp->keys.size() <= n - 1
+            && N->pointers.size() + N_tmp->pointers.size() <= n
+            ){
+                // N predecessor
+                if(!idx){
+                    swap(N, N_tmp);
+                }
+                if(!N->isLeaf){
+                    N_tmp->keys.push_back(K_tmp);
+                    N_tmp->keys.insert(N_tmp->keys.end(), N->keys.begin(), N->keys.end());
+                    N_tmp->pointers.insert(N_tmp->pointers.end(), N->pointers.begin(), N->pointers.end());
+                    for(auto ch : N_tmp->pointers){
+                        ch->parent = N_tmp;
+                    }
+                }
+                else{
+                    N_tmp->keys.insert(N_tmp->keys.end(), N->keys.begin(), N->keys.end());
+                    N_tmp->records.insert(N_tmp->records.end(), N->records.begin(), N->records.end());
+                    N_tmp->next = N->next;
+                }
+                delete_entry(Pr, K_tmp, N);
+                delete N;
+            }
+
+            //redistribution
+            else{
+                // N_tmp is predecessor (left sibling)
+                if(idx != 0){
+                    if(!N->isLeaf){
+                        Node* P_m = N_tmp->pointers.back();
+                        T K_to_replace = N_tmp->keys.back();
+                        N_tmp->pointers.pop_back();
+                        N_tmp->keys.pop_back();
+                        N->pointers.insert(N->pointers.begin(), P_m);
+                        N->keys.insert(N->keys.begin(), K_tmp);
+                        Pr->keys[idx - 1] = K_to_replace;
+                        for(auto ch : N->pointers){
+                            ch->parent = N;
+                        }
+                    }
+                    else{
+                        U P_m = N_tmp->records.back();
+                        T K_m = N_tmp->keys.back();
+                        N_tmp->records.pop_back();
+                        N_tmp->keys.pop_back();
+                        N->records.insert(N->records.begin(), P_m);
+                        N->keys.insert(N->keys.begin(), K_m);
+                        Pr->keys[idx - 1] = K_m;
+                    }
+                }
+
+                // N is predecessor
+                else {
+                    if(!N->isLeaf){
+                        Node* P_m = N_tmp->pointers.front();
+                        T K_to_replace = N_tmp->keys.front();
+                        N_tmp->pointers.erase(N_tmp->pointers.begin());
+                        N_tmp->keys.erase(N_tmp->keys.begin());
+                        N->pointers.insert(N->pointers.end(), P_m);
+                        N->keys.insert(N->keys.end(), K_tmp);
+                        Pr->keys[idx] = K_to_replace;
+                        for(auto ch : N->pointers){
+                            ch->parent = N;
+                        }
+                    }
+                    else{
+                        U P_m = N_tmp->records.front();
+                        T K_m = N_tmp->keys.front();
+                        N_tmp->records.erase(N_tmp->records.begin());
+                        N_tmp->keys.erase(N_tmp->keys.begin());
+                        N->records.insert(N->records.end(), P_m);
+                        N->keys.insert(N->keys.end(), K_m);
+                        Pr->keys[idx] = K_m;
+                    }
+                }
+            }
+        }
+    }
 }
 
 
