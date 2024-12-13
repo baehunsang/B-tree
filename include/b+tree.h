@@ -7,7 +7,7 @@ using namespace std;
 
 template <typename T, typename U>
 class BPlusTree {
-public:
+private:
     // children[i] is lower then keys[i]
     // children[i + 1] is equal or greater then keys[i]
     // (pointers[i], key[i]) is pair, the pair exist max n - 1
@@ -31,8 +31,7 @@ public:
     };
 
     Node* root;
-    // Minimum degree (defines the range for the number of
-    // keys)
+    // n
     int n;
 
     void insert_in_leaf(Node* L, T K, U P);
@@ -128,8 +127,8 @@ void BPlusTree<T, U>::insert_in_parent(Node* N, T K_tmp, Node* N_tmp){
         P->pointers.insert(pos + 1, N_tmp);
         P->keys.insert(P->keys.begin() + idx, K_tmp);
         
-        for(auto it = P->pointers.begin();it != P->pointers.end();it++){
-            (*it)->parent = P;
+        for(auto child : P->pointers){
+            child->parent = P;
         }
     }
     else{
@@ -155,8 +154,8 @@ void BPlusTree<T, U>::insert_in_parent(Node* N, T K_tmp, Node* N_tmp){
         P->keys.insert(P->keys.begin(), Tmp.keys.begin(), (Tmp.keys.begin() + SPLIT_POS(n + 1) - 1));
         P->pointers.insert(P->pointers.begin(), Tmp.pointers.begin(), (Tmp.pointers.begin() + SPLIT_POS(n + 1)));
         
-        for(auto it = P->pointers.begin();it != P->pointers.end();it++){
-            (*it)->parent = P;
+        for(auto child : P->pointers){
+            child->parent = P;
         }
         T K_tmp2 = Tmp.keys[SPLIT_POS(n + 1) - 1];
 
@@ -164,8 +163,8 @@ void BPlusTree<T, U>::insert_in_parent(Node* N, T K_tmp, Node* N_tmp){
         P_tmp->keys.insert(P_tmp->keys.begin(), (Tmp.keys.begin() + SPLIT_POS(n + 1)), Tmp.keys.end());
         P_tmp->pointers.insert(P_tmp->pointers.begin(), (Tmp.pointers.begin() + SPLIT_POS(n + 1)), Tmp.pointers.end());
         
-        for(auto it = P_tmp->pointers.begin();it != P_tmp->pointers.end();it++){
-            (*it)->parent = P_tmp;
+        for(auto child : P_tmp->pointers){
+            child->parent = P_tmp;
         }
         insert_in_parent(P, K_tmp2, P_tmp);
     }
@@ -202,7 +201,7 @@ void BPlusTree<T, U>::print_all_record(){
     }
     while(C){
         for(int i=0; i< C->keys.size(); i++){
-            cout << "record: " << C->keys[i] << endl; 
+            cout << "record: " << C->keys[i] << ", location: "<< hex << C->records[i] << endl; 
         }
         C = C->next;
     }
