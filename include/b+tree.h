@@ -189,7 +189,7 @@ U BPlusTree<T, U>::find_key(T v){
 template <typename T, typename U>
 void BPlusTree<T, U>::print_all_record(){
     Node* C = root;
-    while (!C->isLeaf){
+    while (C &&!C->isLeaf){
         C = C->pointers.front();
     }
     while(C){

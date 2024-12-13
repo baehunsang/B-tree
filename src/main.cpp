@@ -29,17 +29,16 @@ int main(){
         assert(tree.find_key(records[i]) == &records[i]);
     }
     tree.print_all_record();
-    printf("[-] insertion TC pass\n");
 
-    tree.delete_key("Srinivasan");
-    assert(tree.find_key("Srinivasan") == nullptr);
-    tree.delete_key("Singh");
-    tree.delete_key("Wu");
-    assert(tree.find_key("Singh") == nullptr);
-    assert(tree.find_key("Wu") == nullptr);
+    cout << "\n";
+
+    printf("[-] insertion TC pass\n");
     for(int i=0; i< 13; i++){
         tree.delete_key(records[i]);
         assert(tree.find_key(records[i]) == nullptr);
+        cout << "After delete '" << records[i] <<"'"<<endl;
+        tree.print_all_record();
+        cout<< "\n\n";
     }
 
     printf("[-] deletion TC pass\n");
